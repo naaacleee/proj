@@ -1,0 +1,73 @@
+# Полный стек для запуска на ноутбуке или VPS.
+# Использование:
+#   1. Скачайте модель в deploy/models/ (см. README) — например model.gguf.
+#   2. docker compose --profile ai up --build
+#      (без профиля ai поднимется всё, кроме рантайма моделей).
+
+name: mentor
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: mentor
+      POSTGRES_PASSWORD: mentor
+      POSTGRES_DB: mentor
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mentor -d mentor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Рантайм локальных моделей (llama.cpp, OpenAI-совместимый API на :8081).
+  # Модель кладётся в deploy/models/model.gguf.
+  llama:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    profiles: ["ai"]
+    command:
+      - "-m"
+      - "/models/model.gguf"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8081"
+      - "-c"
+      - "8192"
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8081:8081"
+
+  backend:
+    build:
+      context: ../backend
+    environment:
+      DATABASE_URL: postgresql://mentor:mentor@db:5432/mentor
+      MENTOR_BIND: 0.0.0.0:8080
+      MENTOR_JWT_SECRET: ${MENTOR_JWT_SECRET:-dev-only-secret-change-me-please-0123456789}
+      LLM_BASE_URL: http://llama:8081
+      LLM_CHAT_MODEL: ${LLM_CHAT_MODEL:-qwen3:4b}
+      LLM_EMBED_MODEL: ${LLM_EMBED_MODEL:-bge-m3}
+      RUST_LOG: info
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

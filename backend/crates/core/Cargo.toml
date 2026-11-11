@@ -1,0 +1,19 @@
+[package]
+name = "mentor-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+argon2.workspace = true
+chrono.workspace = true
+jsonwebtoken.workspace = true
+mentor-db = { path = "../db" }
+serde.workspace = true
+sha2.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
