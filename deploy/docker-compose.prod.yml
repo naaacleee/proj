@@ -1,0 +1,97 @@
+# Продакшен-стек для VPS: наружу торчит только Caddy (80/443, HTTPS).
+# Postgres, Redis и llama.cpp закрыты внутренней сетью.
+#
+# Запуск (см. docs/deploy-vps.md):
+#   cp .env.example .env   # заполнить!
+#   docker compose -f docker-compose.prod.yml --profile ai up -d --build
+
+name: mentor
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mentor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: mentor
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mentor -d mentor"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Рантайм локальных моделей. Модель: deploy/models/model.gguf.
+  # Профиль "ai": без него стартует всё, кроме модели.
+  llama:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    profiles: ["ai"]
+    restart: unless-stopped
+    command:
+      - "-m"
+      - "/models/model.gguf"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8081"
+      - "-c"
+      - "${LLM_CONTEXT:-8192}"
+      - "--threads"
+      - "${LLM_THREADS:-4}"
+    volumes:
+      - ./models:/models:ro
+    # Память под модель + KV-кэс: подстройте под свой VPS.
+    deploy:
+      resources:
+        limits:
+          memory: ${LLM_MEMORY_LIMIT:-3g}
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      MENTOR_ENV: production
+      DATABASE_URL: postgresql://mentor:${POSTGRES_PASSWORD}@db:5432/mentor
+      MENTOR_BIND: 0.0.0.0:8080
+      MENTOR_JWT_SECRET: ${MENTOR_JWT_SECRET:?set MENTOR_JWT_SECRET in .env}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://llama:8081}
+      LLM_CHAT_MODEL: ${LLM_CHAT_MODEL:-qwen3:4b}
+      LLM_EMBED_MODEL: ${LLM_EMBED_MODEL:-bge-m3}
+      RUST_LOG: ${RUST_LOG:-info}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

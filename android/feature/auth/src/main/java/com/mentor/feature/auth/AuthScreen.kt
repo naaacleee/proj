@@ -32,10 +32,10 @@ import com.mentor.core.network.TokenStore
 
 @Composable
 fun AuthScreen(
-    api: ApiService,
+    apiProvider: () -> ApiService,
     tokenStore: TokenStore,
     onLoggedIn: () -> Unit,
-    viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(api, tokenStore)),
+    viewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(apiProvider, tokenStore)),
 ) {
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }

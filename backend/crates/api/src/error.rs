@@ -9,6 +9,7 @@ pub enum ApiError {
     BadRequest(String),
     Unauthorized,
     Conflict(String),
+    TooManyRequests(String),
     Upstream(String),
     Internal(String),
 }
@@ -19,6 +20,7 @@ impl ApiError {
             ApiError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ApiError::Unauthorized => StatusCode::UNAUTHORIZED,
             ApiError::Conflict(_) => StatusCode::CONFLICT,
+            ApiError::TooManyRequests(_) => StatusCode::TOO_MANY_REQUESTS,
             ApiError::Upstream(_) => StatusCode::BAD_GATEWAY,
             ApiError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -29,6 +31,7 @@ impl ApiError {
             ApiError::BadRequest(_) => "bad_request",
             ApiError::Unauthorized => "unauthorized",
             ApiError::Conflict(_) => "conflict",
+            ApiError::TooManyRequests(_) => "rate_limited",
             ApiError::Upstream(_) => "upstream_error",
             ApiError::Internal(_) => "internal_error",
         }
@@ -38,6 +41,7 @@ impl ApiError {
         match self {
             ApiError::BadRequest(m)
             | ApiError::Conflict(m)
+            | ApiError::TooManyRequests(m)
             | ApiError::Upstream(m)
             | ApiError::Internal(m) => m,
             ApiError::Unauthorized => "invalid or missing access token",

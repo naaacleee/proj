@@ -58,7 +58,7 @@ fun SettingsScreen(
                 onSaveBaseUrl(baseUrl)
                 Toast.makeText(
                     context,
-                    "Сохранено. Перезапустите приложение, чтобы применить.",
+                    "Сохранено. Новый адрес применяется сразу.",
                     Toast.LENGTH_LONG,
                 ).show()
             },

@@ -3,7 +3,9 @@
 //! Модульный монолит: авторизация, диалог с наставником (локальная LLM),
 //! healthchecks. Остальные подсистемы (память, цели, расписание) — Фаза 1.
 
+use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::http::{HeaderValue, Method};
 use axum::Router;
@@ -17,10 +19,12 @@ use mentor_llm::{LlmProvider, OpenAiCompatible};
 mod auth_extract;
 mod config;
 mod error;
+mod rate_limit;
 mod routes;
 mod state;
 
 use config::Config;
+use rate_limit::RateLimiter;
 use state::AppState;
 
 #[tokio::main]
@@ -29,7 +33,12 @@ async fn main() -> anyhow::Result<()> {
     init_tracing();
 
     let cfg = Config::from_env()?;
-    tracing::info!(bind = %cfg.bind, llm = %cfg.llm.base_url, "starting mentor-api");
+    tracing::info!(
+        env = %cfg.env,
+        bind = %cfg.bind,
+        llm = %cfg.llm.base_url,
+        "starting mentor-api"
+    );
 
     let pool = mentor_db::connect(&cfg.database_url).await?;
     mentor_db::migrate(&pool).await?;
@@ -53,15 +62,20 @@ async fn main() -> anyhow::Result<()> {
         )),
         llm,
         llm_model: cfg.llm.chat_model.clone(),
+        // 10 попыток входа/регистрации с одного IP за 10 минут.
+        rate_limiter: Arc::new(RateLimiter::new(10, Duration::from_secs(600))),
     };
 
     let app = build_app(state, &cfg);
 
     let listener = tokio::net::TcpListener::bind(&cfg.bind).await?;
     tracing::info!("listening on http://{}", cfg.bind);
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
     Ok(())
 }
 

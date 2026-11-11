@@ -1,6 +1,8 @@
 //! Эндпоинты регистрации, входа и работы с токенами.
 
-use axum::extract::State;
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, State};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
@@ -68,8 +70,14 @@ pub fn router() -> Router<AppState> {
 
 async fn register(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<RegisterRequest>,
 ) -> Result<Json<AuthResponse>, ApiError> {
+    if !state.rate_limiter.allow(&format!("register:{}", addr.ip())) {
+        return Err(ApiError::TooManyRequests(
+            "too many attempts, try again later".to_string(),
+        ));
+    }
     let (user, tokens) = state
         .auth
         .register(req.username.trim(), &req.password)
@@ -79,8 +87,14 @@ async fn register(
 
 async fn login(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, ApiError> {
+    if !state.rate_limiter.allow(&format!("login:{}", addr.ip())) {
+        return Err(ApiError::TooManyRequests(
+            "too many attempts, try again later".to_string(),
+        ));
+    }
     let (user, tokens) = state
         .auth
         .login(req.username.trim(), &req.password)

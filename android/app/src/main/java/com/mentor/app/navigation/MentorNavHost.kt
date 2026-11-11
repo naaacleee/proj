@@ -21,7 +21,7 @@ fun MentorNavHost(container: AppContainer) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.AUTH) {
             AuthScreen(
-                api = container.api,
+                apiProvider = { container.api },
                 tokenStore = container.tokenStore,
                 onLoggedIn = {
                     navController.navigate(Routes.MAIN) {

@@ -3,6 +3,8 @@ use std::env;
 /// Конфигурация приложения (переменные окружения + `.env`).
 #[derive(Debug, Clone)]
 pub struct Config {
+    /// Окружение: `dev` или `production`.
+    pub env: String,
     pub database_url: String,
     pub bind: String,
     pub jwt_secret: String,
@@ -23,6 +25,9 @@ pub struct LlmConfig {
 
 impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
+        let env_name = env_or("MENTOR_ENV", "dev");
+        let is_production = env_name == "production";
+
         let jwt_secret = env_or(
             "MENTOR_JWT_SECRET",
             "dev-only-secret-change-me-please-0123456789",
@@ -30,13 +35,28 @@ impl Config {
         if jwt_secret.len() < 32 {
             anyhow::bail!("MENTOR_JWT_SECRET must be at least 32 characters");
         }
-        if jwt_secret.starts_with("dev-only") {
+        if is_production && jwt_secret.starts_with("dev-only") {
+            anyhow::bail!(
+                "MENTOR_ENV=production requires a real MENTOR_JWT_SECRET \
+                 (generate one: openssl rand -base64 48)"
+            );
+        }
+        if !is_production && jwt_secret.starts_with("dev-only") {
             tracing::warn!(
                 "MENTOR_JWT_SECRET uses the development default — set a real secret before production"
             );
         }
 
+        let cors_allow_origin = env_or("CORS_ALLOW_ORIGIN", "*");
+        if is_production && cors_allow_origin == "*" {
+            tracing::warn!(
+                "CORS_ALLOW_ORIGIN='*' in production: fine for a native mobile client, \
+                 restrict it if you add a web version"
+            );
+        }
+
         Ok(Self {
+            env: env_name,
             database_url: env_or(
                 "DATABASE_URL",
                 "postgres://mentor:mentor@127.0.0.1:5432/mentor",
@@ -51,7 +71,7 @@ impl Config {
                 chat_model: env_or("LLM_CHAT_MODEL", "qwen3:4b"),
                 embed_model: env_or("LLM_EMBED_MODEL", "bge-m3"),
             },
-            cors_allow_origin: env_or("CORS_ALLOW_ORIGIN", "*"),
+            cors_allow_origin,
         })
     }
 }

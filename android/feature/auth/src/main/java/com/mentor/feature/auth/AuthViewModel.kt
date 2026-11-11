@@ -19,7 +19,8 @@ sealed interface AuthUiState {
 }
 
 class AuthViewModel(
-    private val api: ApiService,
+    // Провайдер, а не готовый api: смена адреса сервера подхватывается сразу.
+    private val apiProvider: () -> ApiService,
     private val tokenStore: TokenStore,
 ) : ViewModel() {
 
@@ -50,6 +51,7 @@ class AuthViewModel(
         _state.value = AuthUiState.Loading
         viewModelScope.launch {
             try {
+                val api = apiProvider()
                 val response = if (register) {
                     api.register(RegisterRequest(name, password))
                 } else {
@@ -68,13 +70,13 @@ class AuthViewModel(
 }
 
 class AuthViewModelFactory(
-    private val api: ApiService,
+    private val apiProvider: () -> ApiService,
     private val tokenStore: TokenStore,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
-            return AuthViewModel(api, tokenStore) as T
+            return AuthViewModel(apiProvider, tokenStore) as T
         }
         throw IllegalArgumentException("unknown ViewModel: ${modelClass.name}")
     }
