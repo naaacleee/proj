@@ -83,6 +83,13 @@ curl -X POST http://127.0.0.1:8080/api/v1/mentor/chat \
 
 ---
 
+## Развёртывание на VPS (продакшен)
+
+Полная пошаговая инструкция установки на VPS с HTTPS, нейросетью и бэкапами: **[docs/deploy-vps.md](docs/deploy-vps.md)**.
+Продакшен-конфигурация: `deploy/docker-compose.prod.yml` (наружу — только Caddy с HTTPS), секреты — в `deploy/.env` (шаблон: `deploy/.env.example`).
+
+---
+
 ## API (Фаза 0)
 
 | Метод | Путь | Описание |
