@@ -1,0 +1,23 @@
+# ---- Секреты и локальное окружение ----
+.env
+**/.env
+*.gguf
+
+# ---- Rust ----
+backend/target/
+**/*.rs.bk
+
+# ---- Android / Gradle ----
+android/.gradle/
+android/build/
+android/**/build/
+android/local.properties
+android/.idea/
+*.iml
+android/captures/
+android/.externalNativeBuild/
+
+# ---- Прочее ----
+.DS_Store
+deploy/models/*
+!deploy/models/.gitkeep
