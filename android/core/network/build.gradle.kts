@@ -13,7 +13,7 @@ android {
         // Адрес бэкенда по умолчанию: эмулятор Android обращается к хостовой
         // машине через 10.0.2.2. Для физического телефона укажите LAN-IP
         // ноутбука в настройках приложения.
-        buildConfigField("String", "DEFAULT_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        buildConfigField("String", "DEFAULT_BASE_URL", "\"https://isotopia.duckdns.org/\"")
     }
 
     compileOptions {
