@@ -30,6 +30,8 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:network"))
 
+    implementation(libs.okhttp)
+
     implementation(libs.coroutines.android)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
