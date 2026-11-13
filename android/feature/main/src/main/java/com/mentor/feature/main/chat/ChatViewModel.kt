@@ -40,9 +40,10 @@ class ChatViewModel(
         }
 
         // Историю диалога пока держит клиент (серверная память — Фаза 1).
+        // Окно ужато до 10 сообщений: длинная история замедляет ответ модели.
         val history = _messages.value
             .filter { it.content.isNotBlank() }
-            .takeLast(20)
+            .takeLast(10)
             .map { ChatMessageDto(it.role, it.content) }
 
         _messages.update {

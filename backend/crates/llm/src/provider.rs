@@ -26,7 +26,8 @@ pub struct ChatOptions {
 impl Default for ChatOptions {
     fn default() -> Self {
         Self {
-            max_tokens: Some(512),
+            // Лимит длины ответа: наставник говорит ёмко, генерация быстрее.
+            max_tokens: Some(384),
             temperature: Some(0.7),
         }
     }
