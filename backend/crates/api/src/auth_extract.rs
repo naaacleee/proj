@@ -1,6 +1,6 @@
 //! Извлечение пользователя из access-токена в заголовке Authorization.
 
-use axum::http::{HeaderMap, AUTHORIZATION};
+use axum::http::{header::AUTHORIZATION, HeaderMap};
 use uuid::Uuid;
 
 use crate::error::ApiError;
