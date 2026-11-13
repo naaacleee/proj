@@ -46,6 +46,8 @@ dependencies {
     implementation(project(":feature:auth"))
     implementation(project(":feature:main"))
 
+    implementation(libs.okhttp)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.navigation.compose)
