@@ -2,7 +2,9 @@
 # Сборка без TLS-зависимостей: HTTP внутри compose-сети,
 # TLS терминируется на reverse-proxy при деплое на VPS.
 
-FROM rust:1.83-slim AS builder
+# Используем последний стабильный Rust: многие современные крейты
+# требуют свежий компилятор (edition2024 и т.п.).
+FROM rust:1-slim AS builder
 WORKDIR /src
 RUN apt-get update && apt-get install -y --no-install-recommends pkg-config && rm -rf /var/lib/apt/lists/*
 COPY Cargo.toml ./
